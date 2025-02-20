@@ -18,5 +18,9 @@ class Base(DeclarativeBase, MappedAsDataclass):
 
 
 async def get_db():
-    async with SessionLocal() as db:
+    db = SessionLocal()
+    try:
         yield db
+    finally:
+        await db.close()
+
