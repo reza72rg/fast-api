@@ -3,13 +3,30 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from db.models import User
 from sqlalchemy.future import select
-
-
+from exception import UserNotFound, UserAlreadyExists
+from secret import password_manager
+from schema.output import RegisterOutput
+from sqlalchemy.exc import IntegrityError
 class UsersOpration:
     def __init__(self, db_session: AsyncSession):
         self.db_session = db_session
 
+
     async def create(self, username: str, password: str):
+        user_pwd = password_manager.hash(password)
+        user = User(password=user_pwd, username=username)
+        async with self.db_session as session:
+            try:
+                session.add(user)
+                await session.commit()
+                await session.refresh(user)
+            except IntegrityError:
+                raise UserAlreadyExists
+
+        #return {"id": user.id, "username": user.username, "password": user.password}
+        return RegisterOutput(username= user.username, id= user.id)
+
+    '''async def create(self, username: str, password: str):
         query = sa.select(User).where(User.username == username)
 
         async with self.db_session as session:
@@ -17,21 +34,22 @@ class UsersOpration:
 
             if user_data:
                 raise HTTPException(status_code=409, detail=f"User {username} already exists")
-
-            user = User(password=password, username=username)
+            user_pwd = password_manager.hash(password)
+            user = User(password=user_pwd, username=username)
             session.add(user)
 
             await session.commit()
             await session.refresh(user)
 
-        return {"id": user.id, "username": user.username}
+        #return {"id": user.id, "username": user.username, "password": user.password}
+        return RegisterOutput(username= user.username, id= user.id)'''
 
     async def get_user_by_username(self, username: str ):
         query = sa.select(User).where(User.username == username)
         async with self.db_session as session:
             user_data = await session.scalar(query)
             if user_data is None:
-                raise HTTPException(status_code=404, detail="User do not exists")
+                raise UserNotFound("/get user")
             return user_data
 
     async def update_user_by_username(self, old_username: str , new_username: str):
@@ -43,9 +61,9 @@ class UsersOpration:
             user_data = await session.scalar(query)
             new_user = await session.scalar(new_query)
             if user_data is None:
-                raise HTTPException(status_code=404, detail=f"User {old_username} do not exists")
+                raise UserNotFound("/update")
             if new_user:
-                raise HTTPException(status_code=409, detail=f"User {new_username} already exists")
+                raise UserNotFound("/update")
 
             await session.execute(update_query)
             await session.commit()
