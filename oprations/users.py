@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from db.models import User
 from sqlalchemy.future import select
-from exception import UserNotFound, UserAlreadyExists
+from exception import UserNotFound, UserAlreadyExists, IncorrectPassword
 from secret import password_manager
 from schema.output import RegisterOutput
 from sqlalchemy.exc import IntegrityError
@@ -87,3 +87,15 @@ class UsersOpration:
             await session.delete(user_data)
             await session.commit()
             return {"details": "user is delete successfully"}
+
+    async def login_user_by_username(self, username: str, password: str):
+        query = sa.select(User).where(User.username == username)
+        async with self.db_session as session:
+            user_data = await session.scalar(query)
+            if user_data is None:
+                raise UserNotFound("/login")
+            if not password_manager.verify(password, user_data.password):
+                raise IncorrectPassword("/login")
+
+            return "login yes"
+

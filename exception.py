@@ -8,6 +8,11 @@ class UserNotFound(HTTPException):
 
 
 class UserAlreadyExists(HTTPException):
-    def __init__(self):
-        self.detail = f"User already exists"
+    def __init__(self,  route : str):
+        self.detail = f"User already exists in route {route}"
+        self.status_code = status.HTTP_400_BAD_REQUEST
+
+class IncorrectPassword(HTTPException):
+    def __init__(self,  route : str):
+        self.detail = f"Incorrect username or password in route {route}"
         self.status_code = status.HTTP_400_BAD_REQUEST

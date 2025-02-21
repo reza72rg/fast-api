@@ -23,10 +23,6 @@ async def register(
     return user
 
 
-@router.post("/login")
-async def login():
-    pass
-
 @router.get("/{username}/")
 async def get_user_profile( db_session: Annotated[AsyncSession, Depends(get_db)],username: str):
     user_profile = await UsersOpration(db_session).get_user_by_username(username)
@@ -46,3 +42,10 @@ async def delete_user( db_session: Annotated[AsyncSession, Depends(get_db)],
     data: DeleteUserAccountInput = Body(),):
     user_delete = await UsersOpration(db_session).delete_user_by_username(data.username, data.password)
     return user_delete
+
+
+@router.post("/login")
+async def login_user( db_session: Annotated[AsyncSession, Depends(get_db)],
+    data: UserInput = Body(),):
+    token = await UsersOpration(db_session).login_user_by_username(data.username, data.password)
+    return token
